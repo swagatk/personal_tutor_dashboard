@@ -10,7 +10,7 @@
 - An analytics page provides details how many attended and % score for each students.
 - It is possible to send email to individual or group of students by clicking on the `email` button. 
 - It is possible restore the data from previously downloaded excel file from this application.
-- It also allows sending calendar invite to attend meeting for a given date. You must first make comments for a particular. 
+
 
 
 
