@@ -201,7 +201,7 @@
     
     <!-- Modal for showing students on a specific date -->
     <div id="date-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden">
-        <div class="bg-white bg-opacity-100 rounded-lg shadow-xl max-w-md w-full p-6 relative">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
             <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
@@ -209,16 +209,6 @@
             <p class="text-sm text-gray-600 mb-4">The following students had a meeting on this day. Click to view their page.</p>
             <div id="modal-student-list" class="space-y-2">
                 <!-- Students with comments on this date will be listed here -->
-            </div>
-            <div class="mt-6 border-t pt-4 space-y-2">
-                 <button id="create-web-invite-btn" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-plus"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
-                    <span>Create Outlook Web Invite</span>
-                </button>
-                <button id="download-ics-btn" class="hidden w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-                    <span>Download Desktop Invite (.ics)</span>
-                </button>
             </div>
         </div>
     </div>
@@ -503,7 +493,7 @@
                 const infoContainer = document.getElementById('student-info-details');
                 infoContainer.innerHTML = '';
                 for (const [key, value] of Object.entries(student)) {
-                    if (key !== 'comments' && key !== 'Name' && key !== 'ID') {
+                    if (key !== 'comments' && key !== 'Name' && key !== 'ID' && !key.startsWith('_EMPTY')) {
                         const infoEl = document.createElement('p');
                         if (key === 'Email') {
                              infoEl.innerHTML = `<strong class="font-medium">${key}:</strong> <a href="mailto:${value}" class="text-indigo-600 hover:underline">${value || 'N/A'}</a>`;
@@ -682,45 +672,6 @@
             // --- DATE MODAL LOGIC ---
             const dateModal = document.getElementById('date-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
-
-            function generateICSFile(dateStr, studentsOnDate) {
-                const eventDate = new Date(`${dateStr}T09:00:00`);
-                // Adjust for timezone offset to get correct UTC time
-                const utcDate = new Date(eventDate.getTime() - (eventDate.getTimezoneOffset() * 60000));
-                
-                const toICSDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-                const startDate = utcDate;
-                const endDate = new Date(startDate.getTime() + 30 * 60000); // 30 minutes later
-
-                const startICS = toICSDate(startDate);
-                const endICS = toICSDate(endDate);
-                const stampICS = toICSDate(new Date());
-
-                let icsString = [
-                    'BEGIN:VCALENDAR',
-                    'VERSION:2.0',
-                    'PRODID:-//TutorDashboard//EN',
-                    'BEGIN:VEVENT',
-                    `UID:${Date.now()}@tutor-dashboard.com`,
-                    `DTSTAMP:${stampICS}`,
-                    `DTSTART:${startICS}`,
-                    `DTEND:${endICS}`,
-                    'SUMMARY:Personal Tutor Meeting',
-                    'DESCRIPTION:This is a meeting reminder for our personal tutor session.'
-                ];
-
-                studentsOnDate.forEach(student => {
-                    if (student.Email) {
-                        icsString.push(`ATTENDEE;CN="${student.Name}";RSVP=TRUE:mailto:${student.Email}`);
-                    }
-                });
-
-                icsString.push('END:VEVENT');
-                icsString.push('END:VCALENDAR');
-
-                return icsString.join('\r\n');
-            }
             
             function showDateModal(dateStr, studentsOnDate) {
                 document.getElementById('modal-date').textContent = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -733,49 +684,6 @@
                     studentEl.addEventListener('click', () => { hideDateModal(); showStudentDetail(student.ID); });
                     modalStudentList.appendChild(studentEl);
                 });
-
-                const createWebInviteBtn = document.getElementById('create-web-invite-btn');
-                const downloadICSBtn = document.getElementById('download-ics-btn');
-                const studentEmails = studentsOnDate.map(s => s.Email).filter(Boolean);
-
-                if (studentEmails.length > 0) {
-                    createWebInviteBtn.classList.remove('hidden');
-                    createWebInviteBtn.onclick = () => {
-                        const subject = "Personal Tutor Meeting";
-                        const startTime = `${dateStr}T09:00:00`; 
-                        const endTime = `${dateStr}T09:30:00`;
-
-                        const baseUrl = "https://outlook.live.com/calendar/0/deeplink/compose";
-                        const params = new URLSearchParams({
-                            path: "/calendar/action/compose",
-                            rru: "addevent",
-                            subject: subject,
-                            startdt: startTime,
-                            enddt: endTime,
-                            to: studentEmails.join(','),
-                            body: "This is a meeting reminder for our personal tutor session."
-                        });
-
-                        const inviteUrl = `${baseUrl}?${params.toString()}`;
-                        window.open(inviteUrl, '_blank');
-                    };
-
-                    downloadICSBtn.classList.remove('hidden');
-                    downloadICSBtn.onclick = () => {
-                        const icsContent = generateICSFile(dateStr, studentsOnDate);
-                        const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(blob);
-                        link.download = `TutorMeeting-${dateStr}.ics`;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    };
-
-                } else {
-                    createWebInviteBtn.classList.add('hidden');
-                    downloadICSBtn.classList.add('hidden');
-                }
 
                 dateModal.classList.remove('hidden');
             }
@@ -918,4 +826,5 @@
 
 
 "
+
 
