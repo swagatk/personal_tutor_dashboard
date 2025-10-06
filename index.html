@@ -66,7 +66,14 @@
         <div id="upload-view" class="view">
             <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg text-center">
                 <h2 class="text-2xl font-semibold mb-4">Upload Student Data</h2>
-                <p class="text-gray-600 mb-6">Upload an Excel file with student details. Required headers: 'Student ID', 'Surname', 'First Name'. An email address will be automatically generated from the Student ID (e.g., StudentID@edgehill.ac.uk).</p>
+                <p class="text-gray-600 mb-6">Upload a new Excel file or a previously downloaded file to restore your data on a new browser.</p>
+                <div class="text-left bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                    <h4 class="font-semibold text-gray-700 mb-2">Excel File Requirements:</h4>
+                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-1">
+                        <li><span class="font-semibold">For a new student list:</span> Must include 'Student ID', 'Surname', and 'First Name'. Other columns will be imported automatically.</li>
+                        <li><span class="font-semibold">To restore from a backup:</span> The file must contain 'Student ID' and can include 'Comment', 'CommentDate', and 'Attended' columns.</li>
+                    </ul>
+                </div>
                 <div class="border-2 border-dashed border-gray-300 rounded-lg p-10 hover:border-indigo-400 transition-colors">
                     <input type="file" id="file-input" class="hidden" accept=".xlsx, .xls, .csv">
                     <label for="file-input" class="cursor-pointer">
@@ -316,26 +323,67 @@
                         const workbook = XLSX.read(data, { type: 'array' });
                         const firstSheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheetName];
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, {defval:""});
                         
-                        if(jsonData.length === 0 || !jsonData[0].hasOwnProperty('Student ID') || !jsonData[0].hasOwnProperty('First Name') || !jsonData[0].hasOwnProperty('Surname')) {
-                            throw new Error("Invalid file format. Ensure it has 'Student ID', 'First Name', and 'Surname' columns.");
+                        if (jsonData.length === 0 || !jsonData[0].hasOwnProperty('Student ID')) {
+                            throw new Error("Invalid file format. Ensure it has at least a 'Student ID' column.");
                         }
 
-                        hasEmailField = true; // Always true now as we generate the email.
+                        // Check if it's a re-upload from a previously downloaded file
+                        const isReUpload = jsonData[0].hasOwnProperty('Comment');
 
-                        students = jsonData.map(student => ({ 
-                            ...student, 
-                            ID: student['Student ID'],
-                            Name: `${student['First Name'] || ''} ${student['Surname'] || ''}`.trim(),
-                            Email: `${student['Student ID']}@edgehill.ac.uk`,
-                            comments: [] 
-                        }));
+                        if (isReUpload) {
+                            const studentMap = new Map();
+                            jsonData.forEach(row => {
+                                const studentId = row['Student ID'];
+                                if (!studentId) return;
+
+                                if (!studentMap.has(studentId)) {
+                                    const studentData = { ...row };
+                                    delete studentData.CommentDate;
+                                    delete studentData.Comment;
+                                    delete studentData.Attended;
+                                    
+                                    studentMap.set(studentId, {
+                                        ...studentData,
+                                        ID: studentId,
+                                        Name: `${row['First Name'] || ''} ${row['Surname'] || ''}`.trim(),
+                                        Email: `${studentId}@edgehill.ac.uk`,
+                                        comments: []
+                                    });
+                                }
+
+                                if (row.CommentDate && row.Comment) {
+                                    const student = studentMap.get(studentId);
+                                    student.comments.push({
+                                        date: row.CommentDate,
+                                        text: row.Comment,
+                                        attended: typeof row.Attended === 'string' ? row.Attended.toLowerCase() === 'yes' : !!row.Attended
+                                    });
+                                }
+                            });
+                            students = Array.from(studentMap.values());
+                            students.forEach(s => s.comments.sort((a, b) => new Date(b.date) - new Date(a.date)));
+                        } else {
+                            // This is a fresh upload
+                             if (!jsonData[0].hasOwnProperty('First Name') || !jsonData[0].hasOwnProperty('Surname')) {
+                                throw new Error("Initial file upload requires 'First Name' and 'Surname' columns.");
+                            }
+                            students = jsonData.map(student => ({ 
+                                ...student, 
+                                ID: student['Student ID'],
+                                Name: `${student['First Name'] || ''} ${student['Surname'] || ''}`.trim(),
+                                Email: `${student['Student ID']}@edgehill.ac.uk`,
+                                comments: [] 
+                            }));
+                        }
                         
+                        hasEmailField = true;
                         saveStudentsToLocalStorage();
                         renderStudentList();
                         renderCalendar();
                         switchView('main');
+
                     } catch (err) {
                         console.error("Error parsing file:", err);
                         errorMessage.textContent = err.message || "Could not parse the Excel file. Please check its format.";
@@ -344,6 +392,7 @@
                 };
                 reader.readAsArrayBuffer(file);
             }
+
 
             // --- VIEW SWITCHING ---
             function switchView(view) {
@@ -539,7 +588,7 @@
                                 </label>
                             </div>
                             <button data-index="${index}" class="delete-comment-btn text-red-500 hover:text-red-700">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
                             </button>
                         </div>
                         <p class="text-gray-700 whitespace-pre-wrap mt-1">${comment.text}</p>
@@ -772,4 +821,5 @@
     </script>
 </body>
 </html>
+
 
