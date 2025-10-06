@@ -119,15 +119,21 @@
         <!-- View: Student Detail -->
         <div id="student-detail-view" class="view hidden">
             <div class="bg-white p-8 rounded-lg shadow-lg">
-                <div class="flex items-center space-x-2 mb-6">
+                <div class="flex justify-between items-center mb-6">
                     <button id="back-to-main" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
                         <span>Back to Dashboard</span>
                     </button>
-                    <button id="next-student-btn" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
-                        <span>Next Student</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                    </button>
+                    <div class="flex items-center space-x-2">
+                         <button id="prev-student-btn" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                            <span>Previous</span>
+                        </button>
+                        <button id="next-student-btn" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
+                            <span>Next</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- Student Info -->
@@ -228,6 +234,7 @@
             const emailFilteredBtn = document.getElementById('email-filtered-btn');
             const emailStudentBtn = document.getElementById('email-student-btn');
             const nextStudentBtn = document.getElementById('next-student-btn');
+            const prevStudentBtn = document.getElementById('prev-student-btn');
 
             // --- LOCAL STORAGE FUNCTIONS ---
             function saveStudentsToLocalStorage() {
@@ -460,6 +467,17 @@
                 const currentlyDisplayedStudents = getFilteredStudents(currentFilter);
                 const currentIndex = currentlyDisplayedStudents.findIndex(s => s.ID === studentId);
 
+                // Previous Button
+                if (currentIndex > 0) {
+                    const prevStudent = currentlyDisplayedStudents[currentIndex - 1];
+                    prevStudentBtn.classList.remove('hidden');
+                    prevStudentBtn.onclick = () => showStudentDetail(prevStudent.ID);
+                } else {
+                    prevStudentBtn.classList.add('hidden');
+                    prevStudentBtn.onclick = null;
+                }
+
+                // Next Button
                 if (currentIndex > -1 && currentIndex < currentlyDisplayedStudents.length - 1) {
                     const nextStudent = currentlyDisplayedStudents[currentIndex + 1];
                     nextStudentBtn.classList.remove('hidden');
