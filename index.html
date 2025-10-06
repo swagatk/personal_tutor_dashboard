@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Comment Management</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS/xlsx library for Excel file handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Lucide icons for a cleaner UI -->
+    <script src="https://unpkg.com/lucide-react@0.292.0/dist/lucide-react.js"></script>
+    <style>
+        /* Simple transition for view switching */
+        .view {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased text-gray-800">
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+
+        <!-- Header -->
+        <header class="mb-8 p-4 bg-white rounded-lg shadow-md flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-700">Tutor's Dashboard</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button id="analytics-btn" class="hidden bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 transition-transform duration-200 hover:scale-105">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pie-chart"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                    <span class="hidden md:inline">Analytics</span>
+                </button>
+                <button id="download-btn" class="hidden bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 transition-transform duration-200 hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    <span class="hidden md:inline">Download Comments</span>
+                </button>
+                 <button id="clear-data-btn" class="hidden bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 transition-transform duration-200 hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                    <span class="hidden md:inline">Clear Data</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- View: File Upload -->
+        <div id="upload-view" class="view">
+            <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg text-center">
+                <h2 class="text-2xl font-semibold mb-4">Upload Student Data</h2>
+                <p class="text-gray-600 mb-6">Upload an Excel file with student details. Required headers: 'Student ID', 'Surname', 'First Name'. An email address will be automatically generated from the Student ID (e.g., StudentID@edgehill.ac.uk).</p>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-10 hover:border-indigo-400 transition-colors">
+                    <input type="file" id="file-input" class="hidden" accept=".xlsx, .xls, .csv">
+                    <label for="file-input" class="cursor-pointer">
+                        <div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-cloud text-indigo-500"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+                        </div>
+                        <span id="file-name" class="text-indigo-600 font-semibold">Click to select a file</span>
+                        <p class="text-sm text-gray-500 mt-2">or drag and drop it here</p>
+                    </label>
+                </div>
+                 <div id="error-message" class="mt-4 text-red-500 font-medium"></div>
+            </div>
+        </div>
+
+        <!-- View: Main Dashboard (Students & Calendar) -->
+        <div id="main-view" class="view hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Student List -->
+                <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold mb-4">Students (<span id="student-count">0</span>)</h2>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="search-box" placeholder="Search students..." class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <button id="email-filtered-btn" title="Email Displayed Students" class="hidden flex-shrink-0 bg-orange-500 hover:bg-orange-600 text-white font-bold p-2 rounded-lg flex items-center justify-center transition-transform duration-200 hover:scale-105">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail-plus"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/><path d="M19 16v6"/><path d="M16 19h6"/></svg>
+                        </button>
+                    </div>
+                    <div id="student-list" class="space-y-3 h-96 overflow-y-auto pr-2">
+                        <!-- Student items will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Calendar -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+                    <div id="calendar-header" class="flex justify-between items-center mb-4">
+                        <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <h2 id="month-year" class="text-xl font-bold"></h2>
+                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 transition-colors">
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1">
+                        <!-- Calendar days will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View: Student Detail -->
+        <div id="student-detail-view" class="view hidden">
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <div class="flex items-center space-x-2 mb-6">
+                    <button id="back-to-main" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                        <span>Back to Dashboard</span>
+                    </button>
+                    <button id="next-student-btn" class="hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
+                        <span>Next Student</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Student Info -->
+                    <div class="md:col-span-1">
+                        <div class="flex justify-between items-start">
+                             <h2 class="text-2xl font-bold mb-4" id="student-name-detail"></h2>
+                             <button id="email-student-btn" title="Email Student" class="hidden ml-2 flex-shrink-0 bg-orange-500 hover:bg-orange-600 text-white font-bold p-2 rounded-lg flex items-center justify-center transition-transform duration-200 hover:scale-105">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                             </button>
+                        </div>
+                        <div id="student-info-details" class="space-y-2 text-gray-600"></div>
+                    </div>
+                    <!-- Comments -->
+                    <div class="md:col-span-2">
+                        <h3 class="text-xl font-bold mb-4">Tutor Comments</h3>
+                        <div class="space-y-4 mb-6">
+                             <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-semibold mb-2">Add New Comment</h4>
+                                <textarea id="comment-text" rows="3" placeholder="Enter your comments here..." class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                                <div class="flex items-center justify-between mt-2">
+                                    <input type="date" id="comment-date" class="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <div class="flex items-center space-x-3">
+                                        <label for="comment-attended" class="flex items-center cursor-pointer">
+                                            <input type="checkbox" id="comment-attended" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" checked>
+                                            <span class="ml-2 text-gray-700">Attended</span>
+                                        </label>
+                                        <button id="add-comment-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
+                                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-circle"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+                                            <span>Add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+                        <div id="comments-list" class="space-y-4 max-h-80 overflow-y-auto pr-2">
+                            <!-- Comments will be injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- View: Analytics -->
+        <div id="analytics-view" class="view hidden">
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <button id="back-to-main-from-analytics" class="mb-6 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                    <span>Back to Dashboard</span>
+                </button>
+                <h2 class="text-3xl font-bold mb-6 text-gray-700">Attendance Analytics</h2>
+                <div id="analytics-content" class="space-y-6">
+                    <!-- Analytics content will be injected here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- Modal for showing students on a specific date -->
+    <div id="date-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+            <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <h3 class="text-lg font-bold mb-4" id="modal-date"></h3>
+            <p class="text-sm text-gray-600 mb-4">The following students had a meeting on this day. Click to view their page.</p>
+            <div id="modal-student-list" class="space-y-2">
+                <!-- Students with comments on this date will be listed here -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const STORAGE_KEY = 'tutorAppStudentData';
+
+            // --- STATE MANAGEMENT ---
+            let students = [];
+            let currentStudentId = null;
+            let currentDate = new Date();
+            let hasEmailField = false;
+
+            // --- DOM ELEMENTS ---
+            const fileInput = document.getElementById('file-input');
+            const fileNameEl = document.getElementById('file-name');
+            const uploadView = document.getElementById('upload-view');
+            const mainView = document.getElementById('main-view');
+            const studentDetailView = document.getElementById('student-detail-view');
+            const analyticsView = document.getElementById('analytics-view');
+            const studentList = document.getElementById('student-list');
+            const studentCount = document.getElementById('student-count');
+            const searchBox = document.getElementById('search-box');
+            const downloadBtn = document.getElementById('download-btn');
+            const clearDataBtn = document.getElementById('clear-data-btn');
+            const analyticsBtn = document.getElementById('analytics-btn');
+            const errorMessage = document.getElementById('error-message');
+            const emailFilteredBtn = document.getElementById('email-filtered-btn');
+            const emailStudentBtn = document.getElementById('email-student-btn');
+            const nextStudentBtn = document.getElementById('next-student-btn');
+
+            // --- LOCAL STORAGE FUNCTIONS ---
+            function saveStudentsToLocalStorage() {
+                try {
+                    const dataToSave = { students, hasEmailField };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                } catch (e) {
+                    console.error("Error saving to localStorage", e);
+                    errorMessage.textContent = "Could not save data. Your browser's storage might be full.";
+                }
+            }
+
+            function loadStudentsFromLocalStorage() {
+                try {
+                    const data = localStorage.getItem(STORAGE_KEY);
+                    if (data) {
+                        const savedData = JSON.parse(data);
+                        students = savedData.students || [];
+                        hasEmailField = savedData.hasEmailField || false;
+
+                        // Data migration for old format without 'attended' property
+                        students.forEach(s => {
+                            if (s.comments) {
+                                s.comments.forEach(c => {
+                                    if (c.attended === undefined) {
+                                        c.attended = true; // Default old comments to attended
+                                    }
+                                });
+                            }
+                        });
+                        return true;
+                    }
+                    return false;
+                } catch (e) {
+                    console.error("Error loading from localStorage", e);
+                    students = [];
+                    hasEmailField = false;
+                    return false;
+                }
+            }
+            
+            // --- INITIALIZATION ---
+            function initializeApp() {
+                if (loadStudentsFromLocalStorage() && students.length > 0) {
+                    renderStudentList();
+                    renderCalendar();
+                    switchView('main');
+                } else {
+                    switchView('upload');
+                }
+            }
+            
+            // --- FILE UPLOAD LOGIC ---
+            fileInput.addEventListener('change', handleFileUpload);
+            
+            const uploadArea = fileInput.parentElement.parentElement;
+            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('border-indigo-400', 'bg-indigo-50'); });
+            uploadArea.addEventListener('dragleave', (e) => { e.preventDefault(); uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50'); });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('border-indigo-400', 'bg-indigo-50');
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileUpload({ target: fileInput });
+                }
+            });
+
+            function handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                fileNameEl.textContent = file.name;
+                errorMessage.textContent = '';
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        if(jsonData.length === 0 || !jsonData[0].hasOwnProperty('Student ID') || !jsonData[0].hasOwnProperty('First Name') || !jsonData[0].hasOwnProperty('Surname')) {
+                            throw new Error("Invalid file format. Ensure it has 'Student ID', 'First Name', and 'Surname' columns.");
+                        }
+
+                        hasEmailField = true; // Always true now as we generate the email.
+
+                        students = jsonData.map(student => ({ 
+                            ...student, 
+                            ID: student['Student ID'],
+                            Name: `${student['First Name'] || ''} ${student['Surname'] || ''}`.trim(),
+                            Email: `${student['Student ID']}@edgehill.ac.uk`,
+                            comments: [] 
+                        }));
+                        
+                        saveStudentsToLocalStorage();
+                        renderStudentList();
+                        renderCalendar();
+                        switchView('main');
+                    } catch (err) {
+                        console.error("Error parsing file:", err);
+                        errorMessage.textContent = err.message || "Could not parse the Excel file. Please check its format.";
+                        fileNameEl.textContent = 'Click to select a file';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            // --- VIEW SWITCHING ---
+            function switchView(view) {
+                uploadView.classList.add('hidden');
+                mainView.classList.add('hidden');
+                studentDetailView.classList.add('hidden');
+                analyticsView.classList.add('hidden');
+                downloadBtn.classList.add('hidden');
+                clearDataBtn.classList.add('hidden');
+                analyticsBtn.classList.add('hidden');
+
+                if (view === 'upload') {
+                    uploadView.classList.remove('hidden');
+                } else {
+                    downloadBtn.classList.remove('hidden');
+                    clearDataBtn.classList.remove('hidden');
+                    analyticsBtn.classList.remove('hidden');
+                    if (view === 'main') mainView.classList.remove('hidden');
+                    else if (view === 'detail') studentDetailView.classList.remove('hidden');
+                    else if (view === 'analytics') analyticsView.classList.remove('hidden');
+                }
+            }
+
+            // --- STUDENT FILTERING & LIST RENDERING ---
+            function getFilteredStudents(filter = '') {
+                const searchTerms = filter.toLowerCase().split(' ').filter(Boolean);
+                if (searchTerms.length === 0) {
+                    return students;
+                }
+                return students.filter(s => {
+                    const searchableText = Object.entries(s)
+                        .map(([key, value]) => {
+                            if (key === 'comments') return '';
+                            return `${key} ${String(value)}`;
+                        })
+                        .join(' ')
+                        .toLowerCase();
+                    return searchTerms.every(term => {
+                        const escapedTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                        const regex = new RegExp(`\\b${escapedTerm}`, 'i');
+                        return regex.test(searchableText);
+                    });
+                });
+            }
+
+            function renderStudentList(filter = '') {
+                studentList.innerHTML = '';
+                const filteredStudents = getFilteredStudents(filter);
+
+                studentCount.textContent = filteredStudents.length;
+
+                if (hasEmailField && filteredStudents.length > 0) {
+                    emailFilteredBtn.classList.remove('hidden');
+                    emailFilteredBtn.onclick = () => {
+                        const emails = filteredStudents.map(s => s.Email).filter(Boolean);
+                        if(emails.length > 0) {
+                            triggerEmail(emails);
+                        } else {
+                            alert('None of the displayed students have an email address.');
+                        }
+                    };
+                } else {
+                    emailFilteredBtn.classList.add('hidden');
+                }
+
+                if (filteredStudents.length === 0) {
+                    studentList.innerHTML = `<p class="text-gray-500 text-center">No students found.</p>`;
+                    return;
+                }
+
+                filteredStudents.forEach(student => {
+                    const studentEl = document.createElement('div');
+                    studentEl.className = 'p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-indigo-100 hover:shadow-sm transition-all';
+                    studentEl.innerHTML = `
+                        <p class="font-semibold text-gray-800">${student.Name || 'N/A'}</p>
+                        <p class="text-sm text-gray-500">${student.ID || 'N/A'}</p>
+                    `;
+                    studentEl.addEventListener('click', () => showStudentDetail(student.ID));
+                    studentList.appendChild(studentEl);
+                });
+            }
+
+            searchBox.addEventListener('input', (e) => renderStudentList(e.target.value));
+
+            // --- STUDENT DETAIL VIEW ---
+            const backToMainBtn = document.getElementById('back-to-main');
+            backToMainBtn.addEventListener('click', () => {
+                currentStudentId = null;
+                switchView('main');
+            });
+
+            function showStudentDetail(studentId) {
+                currentStudentId = studentId;
+                const student = students.find(s => s.ID === studentId);
+                if (!student) return;
+
+                document.getElementById('student-name-detail').textContent = student.Name;
+                const infoContainer = document.getElementById('student-info-details');
+                infoContainer.innerHTML = '';
+                for (const [key, value] of Object.entries(student)) {
+                    if (key !== 'comments' && key !== 'Name' && key !== 'ID') {
+                        const infoEl = document.createElement('p');
+                        if (key === 'Email') {
+                             infoEl.innerHTML = `<strong class="font-medium">${key}:</strong> <a href="mailto:${value}" class="text-indigo-600 hover:underline">${value || 'N/A'}</a>`;
+                        } else {
+                            infoEl.innerHTML = `<strong class="font-medium">${key}:</strong> ${value || 'N/A'}`;
+                        }
+                        infoContainer.appendChild(infoEl);
+                    }
+                }
+                
+                if (hasEmailField && student.Email) {
+                    emailStudentBtn.classList.remove('hidden');
+                    emailStudentBtn.onclick = () => triggerEmail([student.Email]);
+                } else {
+                    emailStudentBtn.classList.add('hidden');
+                }
+
+                // Navigation Logic
+                const currentFilter = searchBox.value;
+                const currentlyDisplayedStudents = getFilteredStudents(currentFilter);
+                const currentIndex = currentlyDisplayedStudents.findIndex(s => s.ID === studentId);
+
+                if (currentIndex > -1 && currentIndex < currentlyDisplayedStudents.length - 1) {
+                    const nextStudent = currentlyDisplayedStudents[currentIndex + 1];
+                    nextStudentBtn.classList.remove('hidden');
+                    nextStudentBtn.onclick = () => showStudentDetail(nextStudent.ID);
+                } else {
+                    nextStudentBtn.classList.add('hidden');
+                    nextStudentBtn.onclick = null;
+                }
+                
+                renderComments(student.comments);
+                document.getElementById('comment-date').valueAsDate = new Date();
+                document.getElementById('comment-text').value = '';
+                document.getElementById('comment-attended').checked = true;
+                switchView('detail');
+            }
+
+            // --- COMMENTS LOGIC ---
+            const addCommentBtn = document.getElementById('add-comment-btn');
+            addCommentBtn.addEventListener('click', () => {
+                const text = document.getElementById('comment-text').value.trim();
+                const date = document.getElementById('comment-date').value;
+                const attended = document.getElementById('comment-attended').checked;
+
+                if (!text || !date) {
+                    const commentBox = document.getElementById('comment-text');
+                    commentBox.classList.add('border-red-500', 'ring-red-500');
+                    setTimeout(() => commentBox.classList.remove('border-red-500', 'ring-red-500'), 2000);
+                    return;
+                }
+                const student = students.find(s => s.ID === currentStudentId);
+                if (student) {
+                    student.comments.push({ date, text, attended });
+                    student.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    saveStudentsToLocalStorage();
+                    renderComments(student.comments);
+                    renderCalendar();
+                    document.getElementById('comment-text').value = '';
+                    document.getElementById('comment-attended').checked = true;
+                }
+            });
+            
+            function renderComments(comments) {
+                const commentsList = document.getElementById('comments-list');
+                commentsList.innerHTML = '';
+                if (comments.length === 0) {
+                    commentsList.innerHTML = `<p class="text-gray-500 text-center p-4 bg-gray-50 rounded-lg">No comments yet.</p>`;
+                    return;
+                }
+                comments.forEach((comment, index) => {
+                    const commentEl = document.createElement('div');
+                    commentEl.className = 'bg-white p-4 rounded-lg border border-gray-200';
+                    commentEl.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <p class="font-semibold text-indigo-600">${new Date(comment.date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                <label class="mt-2 inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="attendance-toggle h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-index="${index}" ${comment.attended ? 'checked' : ''}>
+                                    <span class="ml-2 text-sm text-gray-600">Attended</span>
+                                </label>
+                            </div>
+                            <button data-index="${index}" class="delete-comment-btn text-red-500 hover:text-red-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                            </button>
+                        </div>
+                        <p class="text-gray-700 whitespace-pre-wrap mt-1">${comment.text}</p>
+                    `;
+                    commentsList.appendChild(commentEl);
+                });
+                
+                document.querySelectorAll('.delete-comment-btn').forEach(btn => {
+                   btn.addEventListener('click', (e) => {
+                       const index = e.currentTarget.getAttribute('data-index');
+                       const student = students.find(s => s.ID === currentStudentId);
+                       if (student) {
+                           student.comments.splice(index, 1);
+                           saveStudentsToLocalStorage();
+                           renderComments(student.comments);
+                           renderCalendar();
+                       }
+                   })
+                });
+
+                document.querySelectorAll('.attendance-toggle').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const index = e.target.getAttribute('data-index');
+                        const student = students.find(s => s.ID === currentStudentId);
+                        if (student) {
+                            student.comments[index].attended = e.target.checked;
+                            saveStudentsToLocalStorage();
+                            renderAnalytics(); // Update analytics if attendance changes
+                        }
+                    });
+                });
+            }
+
+            // --- CALENDAR LOGIC ---
+            const monthYearEl = document.getElementById('month-year');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+
+            prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
+            nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
+
+            function renderCalendar() {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                monthYearEl.textContent = new Date(year, month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                calendarGrid.innerHTML = '';
+                
+                ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+                    calendarGrid.innerHTML += `<div class="text-center font-bold text-gray-500 text-sm">${day}</div>`;
+                });
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDay; i++) { calendarGrid.innerHTML += `<div></div>`; }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const studentsOnDate = students.filter(s => s.comments.some(c => c.date === dateStr));
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'text-center p-2 rounded-lg relative cursor-pointer transition-colors';
+                    dayEl.innerHTML = `<span class="z-10 relative">${day}</span>`;
+                    
+                    if (studentsOnDate.length > 0) {
+                        dayEl.classList.add('bg-indigo-100', 'hover:bg-indigo-200');
+                        dayEl.innerHTML += `<div class="absolute bottom-1 right-1 w-5 h-5 bg-indigo-500 text-white text-xs rounded-full flex items-center justify-center">${studentsOnDate.length}</div>`;
+                        dayEl.addEventListener('click', () => showDateModal(dateStr, studentsOnDate));
+                    } else {
+                         dayEl.classList.add('hover:bg-gray-200');
+                    }
+                    
+                    const today = new Date();
+                    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                       dayEl.classList.add('bg-blue-500', 'text-white', 'font-bold');
+                    }
+                    calendarGrid.appendChild(dayEl);
+                }
+            }
+            
+            // --- DATE MODAL LOGIC ---
+            const dateModal = document.getElementById('date-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            
+            function showDateModal(dateStr, studentsOnDate) {
+                document.getElementById('modal-date').textContent = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const modalStudentList = document.getElementById('modal-student-list');
+                modalStudentList.innerHTML = '';
+                studentsOnDate.forEach(student => {
+                    const studentEl = document.createElement('div');
+                    studentEl.className = 'p-3 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 flex justify-between items-center';
+                    studentEl.innerHTML = `<p class="font-medium">${student.Name}</p><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-circle text-gray-500"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="m12 16 4-4-4-4"/></svg>`;
+                    studentEl.addEventListener('click', () => { hideDateModal(); showStudentDetail(student.ID); });
+                    modalStudentList.appendChild(studentEl);
+                });
+                dateModal.classList.remove('hidden');
+            }
+            
+            function hideDateModal() { dateModal.classList.add('hidden'); }
+            closeModalBtn.addEventListener('click', hideDateModal);
+            dateModal.addEventListener('click', (e) => { if (e.target === dateModal) { hideDateModal(); } });
+
+            // --- EMAIL LOGIC ---
+            function triggerEmail(recipients) {
+                const subject = "Message from your Tutor";
+                let mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}`;
+                
+                if (recipients.length > 0) {
+                     mailtoLink += `&bcc=${recipients.map(e => encodeURIComponent(e)).join(',')}`;
+                }
+
+                window.location.href = mailtoLink;
+            }
+
+            // --- ANALYTICS LOGIC ---
+            analyticsBtn.addEventListener('click', () => {
+                renderAnalytics();
+                switchView('analytics');
+            });
+            
+            document.getElementById('back-to-main-from-analytics').addEventListener('click', () => switchView('main'));
+
+            function renderAnalytics() {
+                const contentEl = document.getElementById('analytics-content');
+                let totalComments = 0;
+                let totalAttended = 0;
+                
+                const studentStats = students.map(student => {
+                    const commentsCount = student.comments.length;
+                    const attendedCount = student.comments.filter(c => c.attended).length;
+                    totalComments += commentsCount;
+                    totalAttended += attendedCount;
+                    const percentage = commentsCount > 0 ? (attendedCount / commentsCount) * 100 : 0;
+                    return { student, commentsCount, attendedCount, percentage };
+                });
+
+                const overallPercentage = totalComments > 0 ? (totalAttended / totalComments) * 100 : 0;
+
+                let html = `
+                    <div class="bg-gray-50 p-6 rounded-lg border">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Overall Summary</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p class="text-3xl font-bold text-indigo-600">${totalComments}</p>
+                                <p class="text-gray-500">Total Sessions Logged</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold text-green-600">${totalAttended}</p>
+                                <p class="text-gray-500">Total Attendances</p>
+                            </div>
+                            <div>
+                                <p class="text-3xl font-bold text-blue-600">${overallPercentage.toFixed(1)}%</p>
+                                <p class="text-gray-500">Overall Attendance Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Student Breakdown</h3>
+                        <div class="space-y-3 max-h-96 overflow-y-auto pr-2">`;
+                
+                studentStats.sort((a, b) => a.student.Name.localeCompare(b.student.Name));
+
+                studentStats.forEach(({ student, commentsCount, attendedCount, percentage }) => {
+                    html += `
+                        <div class="bg-white p-4 rounded-lg border grid grid-cols-3 items-center gap-4">
+                            <p class="font-semibold col-span-1">${student.Name}</p>
+                            <div class="col-span-1">
+                                <p class="text-center">${attendedCount} / ${commentsCount} <span class="text-gray-500 text-sm">sessions</span></p>
+                            </div>
+                            <div class="col-span-1 text-right">
+                                <p class="font-bold text-lg ${percentage >= 80 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}">
+                                    ${percentage.toFixed(1)}%
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+                contentEl.innerHTML = html;
+            }
+
+            // --- DATA MANAGEMENT BUTTONS ---
+            downloadBtn.addEventListener('click', () => {
+                const exportData = [];
+                students.forEach(student => {
+                    const studentBase = { ...student };
+                    delete studentBase.comments; delete studentBase.ID; delete studentBase.Name;
+                    if (student.comments.length === 0) {
+                        exportData.push({ ...studentBase, CommentDate: '', Comment: '', Attended: '' });
+                    } else {
+                        student.comments.forEach(comment => {
+                            exportData.push({ ...studentBase, CommentDate: comment.date, Comment: comment.text, Attended: comment.attended ? 'Yes' : 'No' });
+                        });
+                    }
+                });
+                const worksheet = XLSX.utils.json_to_sheet(exportData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Student Comments');
+                XLSX.writeFile(workbook, 'student_comments_export.xlsx');
+            });
+            
+            let clearDataTimeout;
+            clearDataBtn.addEventListener('click', () => {
+                if (clearDataTimeout) clearTimeout(clearDataTimeout);
+                const isConfirming = clearDataBtn.dataset.confirming === 'true';
+
+                if (isConfirming) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    window.location.reload();
+                } else {
+                    clearDataBtn.dataset.confirming = 'true';
+                    clearDataBtn.querySelector('span').textContent = 'Confirm Reset?';
+                    clearDataBtn.classList.replace('bg-red-500', 'bg-red-700');
+                    clearDataBtn.classList.replace('hover:bg-red-600', 'hover:bg-red-800');
+                    
+                    clearDataTimeout = setTimeout(() => {
+                        clearDataBtn.dataset.confirming = 'false';
+                        clearDataBtn.querySelector('span').textContent = 'Clear Data';
+                        clearDataBtn.classList.replace('bg-red-700', 'bg-red-500');
+                        clearDataBtn.classList.replace('hover:bg-red-800', 'hover:bg-red-600');
+                    }, 3000);
+                }
+            });
+            
+            // --- START THE APP ---
+            initializeApp();
+
+        });
+    </script>
+</body>
+</html>
+
