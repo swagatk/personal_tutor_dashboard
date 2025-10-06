@@ -9,10 +9,16 @@
 - Comments could be downloaded as an excel file. 
 - An analytics page provides details how many attended and % score for each students.
 - It is possible to send email to individual or group of students by clicking on the `email` button. 
+- It is possible restore the data from previously downloaded excel file from this application.
+- It also allows sending calendar invite to attend meeting for a given date. You must first make comments for a particular. 
+
 
 
 
 ## Images
+
+### Starting Page
+![starting_page](./images/start_page.png)
 
 ### Dashboard after loading excel file
 ![dashboard_after_loading](./images/dashboard_after_loading.png)
