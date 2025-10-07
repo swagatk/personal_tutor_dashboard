@@ -10,7 +10,8 @@
 - An analytics page provides details how many attended and % score for each students.
 - It is possible to send email to individual or group of students by clicking on the `email` button. 
 - It is possible restore the data from previously downloaded excel file from this application.
-- It allows you to schedule a meeting with a group of students on a particular date by downloading as pre-fillex calendar invite '`.ics`' file.  You need to add comments to students to add them to the calendar invite.
+- It allows you to schedule a meeting with a group of students on a particular date by downloading as pre-filled calendar invite '`.ics`' file.  You need to add comments to students to add them to the calendar invite.
+
 
 
 

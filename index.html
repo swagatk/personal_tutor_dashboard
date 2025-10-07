@@ -163,10 +163,16 @@
                                 <div class="flex items-center justify-between mt-2">
                                     <input type="date" id="comment-date" class="p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
                                     <div class="flex items-center space-x-3">
-                                        <label for="comment-attended" class="flex items-center cursor-pointer">
-                                            <input type="checkbox" id="comment-attended" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" checked>
-                                            <span class="ml-2 text-gray-700">Attended</span>
+                                        <label for="record-attendance-toggle" class="flex items-center cursor-pointer">
+                                            <input type="checkbox" id="record-attendance-toggle" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" checked>
+                                            <span class="ml-2 text-gray-700">Is a Meeting?</span>
                                         </label>
+                                        <div id="attendance-wrapper" class="flex items-center">
+                                            <label for="comment-attended" class="flex items-center cursor-pointer">
+                                                <input type="checkbox" id="comment-attended" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" checked>
+                                                <span class="ml-2 text-gray-700">Attended</span>
+                                            </label>
+                                        </div>
                                         <button id="add-comment-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-circle"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
                                             <span>Add</span>
@@ -201,7 +207,7 @@
     
     <!-- Modal for showing students on a specific date -->
     <div id="date-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
+        <div class="bg-white bg-opacity-100 rounded-lg shadow-xl max-w-md w-full p-6 relative">
             <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
@@ -259,6 +265,9 @@
             const emailStudentBtn = document.getElementById('email-student-btn');
             const nextStudentBtn = document.getElementById('next-student-btn');
             const prevStudentBtn = document.getElementById('prev-student-btn');
+            const recordAttendanceToggle = document.getElementById('record-attendance-toggle');
+            const attendanceWrapper = document.getElementById('attendance-wrapper');
+
 
             // --- LOCAL STORAGE FUNCTIONS ---
             function saveStudentsToLocalStorage() {
@@ -279,12 +288,15 @@
                         students = savedData.students || [];
                         hasEmailField = savedData.hasEmailField || false;
 
-                        // Data migration for old format without 'attended' property
+                        // Data migration for older comments
                         students.forEach(s => {
                             if (s.comments) {
                                 s.comments.forEach(c => {
-                                    if (c.attended === undefined) {
-                                        c.attended = true; // Default old comments to attended
+                                    if (c.isMeeting === undefined) {
+                                        c.isMeeting = true; // Assume old comments are meetings
+                                    }
+                                    if (c.attended === undefined && c.isMeeting) {
+                                        c.attended = true; // Default old meetings to attended
                                     }
                                 });
                             }
@@ -309,6 +321,9 @@
                 } else {
                     switchView('upload');
                 }
+                recordAttendanceToggle.addEventListener('change', (e) => {
+                    attendanceWrapper.classList.toggle('hidden', !e.target.checked);
+                });
             }
             
             // --- FILE UPLOAD LOGIC ---
@@ -372,11 +387,16 @@
 
                                 if (row.CommentDate && row.Comment) {
                                     const student = studentMap.get(studentId);
-                                    student.comments.push({
+                                    const isMeeting = row.Attended && (String(row.Attended).toLowerCase() === 'yes' || String(row.Attended).toLowerCase() === 'no');
+                                    const newComment = {
                                         date: row.CommentDate,
                                         text: row.Comment,
-                                        attended: typeof row.Attended === 'string' ? row.Attended.toLowerCase() === 'yes' : !!row.Attended
-                                    });
+                                        isMeeting: isMeeting,
+                                    };
+                                    if (isMeeting) {
+                                        newComment.attended = String(row.Attended).toLowerCase() === 'yes';
+                                    }
+                                    student.comments.push(newComment);
                                 }
                             });
                             students = Array.from(studentMap.values());
@@ -556,6 +576,8 @@
                 renderComments(student.comments);
                 document.getElementById('comment-date').valueAsDate = new Date();
                 document.getElementById('comment-text').value = '';
+                recordAttendanceToggle.checked = true;
+                attendanceWrapper.classList.remove('hidden');
                 document.getElementById('comment-attended').checked = true;
                 switchView('detail');
             }
@@ -565,6 +587,7 @@
             addCommentBtn.addEventListener('click', () => {
                 const text = document.getElementById('comment-text').value.trim();
                 const date = document.getElementById('comment-date').value;
+                const isMeeting = recordAttendanceToggle.checked;
                 const attended = document.getElementById('comment-attended').checked;
 
                 if (!text || !date) {
@@ -575,13 +598,16 @@
                 }
                 const student = students.find(s => s.ID === currentStudentId);
                 if (student) {
-                    student.comments.push({ date, text, attended });
+                    const newComment = { date, text, isMeeting };
+                    if (isMeeting) {
+                        newComment.attended = attended;
+                    }
+                    student.comments.push(newComment);
                     student.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
                     saveStudentsToLocalStorage();
                     renderComments(student.comments);
                     renderCalendar();
                     document.getElementById('comment-text').value = '';
-                    document.getElementById('comment-attended').checked = true;
                 }
             });
             
@@ -595,26 +621,70 @@
                 comments.forEach((comment, index) => {
                     const commentEl = document.createElement('div');
                     commentEl.className = 'bg-white p-4 rounded-lg border border-gray-200';
-                    commentEl.innerHTML = `
+                    
+                    const attendedCheckboxHTML = comment.isMeeting ? `
+                        <label class="mt-2 inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="attendance-toggle h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-index="${index}" ${comment.attended ? 'checked' : ''}>
+                            <span class="ml-2 text-sm text-gray-600">Attended</span>
+                        </label>
+                    ` : '';
+
+                    const displayView = document.createElement('div');
+                    displayView.id = `comment-display-${index}`;
+                    displayView.innerHTML = `
                         <div class="flex justify-between items-start mb-2">
                             <div>
                                 <p class="font-semibold text-indigo-600">${new Date(comment.date).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                <label class="mt-2 inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="attendance-toggle h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-index="${index}" ${comment.attended ? 'checked' : ''}>
-                                    <span class="ml-2 text-sm text-gray-600">Attended</span>
-                                </label>
+                                ${attendedCheckboxHTML}
                             </div>
-                            <button data-index="${index}" class="delete-comment-btn text-red-500 hover:text-red-700">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                            </button>
+                            <div class="flex space-x-2">
+                                <button data-index="${index}" class="edit-comment-btn text-blue-500 hover:text-blue-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                                </button>
+                                <button data-index="${index}" class="delete-comment-btn text-red-500 hover:text-red-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                                </button>
+                            </div>
                         </div>
                         <p class="text-gray-700 whitespace-pre-wrap mt-1">${comment.text}</p>
                     `;
+
+                    // Edit View
+                    const editView = document.createElement('div');
+                    editView.id = `comment-edit-${index}`;
+                    editView.className = 'hidden';
+                    editView.innerHTML = `
+                        <textarea class="w-full p-2 border border-gray-300 rounded-md mb-2">${comment.text}</textarea>
+                        <div class="flex justify-between items-center mb-2">
+                            <input type="date" value="${comment.date}" class="p-2 border border-gray-300 rounded-md">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" class="is-meeting-edit-toggle h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-index="${index}" ${comment.isMeeting ? 'checked' : ''}>
+                                <span class="ml-2 text-sm text-gray-700">Is a Meeting?</span>
+                            </label>
+                        </div>
+                        <div id="edit-attendance-wrapper-${index}" class="${comment.isMeeting ? 'flex' : 'hidden'} items-center mb-4">
+                             <label class="flex items-center cursor-pointer">
+                                <input type="checkbox" class="attended-edit-toggle h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" ${comment.attended ? 'checked' : ''}>
+                                <span class="ml-2 text-sm text-gray-700">Attended</span>
+                            </label>
+                        </div>
+                        <div class="mt-4 flex justify-end space-x-2">
+                            <button data-index="${index}" class="cancel-edit-btn bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg">Cancel</button>
+                            <button data-index="${index}" class="save-comment-btn bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg">Save</button>
+                        </div>
+                    `;
+
+                    commentEl.appendChild(displayView);
+                    commentEl.appendChild(editView);
                     commentsList.appendChild(commentEl);
                 });
                 
+                addCommentEventListeners();
+            }
+
+            function addCommentEventListeners() {
                 document.querySelectorAll('.delete-comment-btn').forEach(btn => {
-                   btn.addEventListener('click', (e) => {
+                   btn.onclick = (e) => {
                        const index = e.currentTarget.getAttribute('data-index');
                        const student = students.find(s => s.ID === currentStudentId);
                        if (student) {
@@ -623,19 +693,72 @@
                            renderComments(student.comments);
                            renderCalendar();
                        }
-                   })
+                   };
                 });
 
                 document.querySelectorAll('.attendance-toggle').forEach(checkbox => {
-                    checkbox.addEventListener('change', (e) => {
+                    checkbox.onchange = (e) => {
                         const index = e.target.getAttribute('data-index');
                         const student = students.find(s => s.ID === currentStudentId);
                         if (student) {
                             student.comments[index].attended = e.target.checked;
                             saveStudentsToLocalStorage();
-                            renderAnalytics(); // Update analytics if attendance changes
                         }
-                    });
+                    };
+                });
+
+                document.querySelectorAll('.edit-comment-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        const index = e.currentTarget.getAttribute('data-index');
+                        document.getElementById(`comment-display-${index}`).classList.add('hidden');
+                        document.getElementById(`comment-edit-${index}`).classList.remove('hidden');
+                    };
+                });
+
+                document.querySelectorAll('.cancel-edit-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        const index = e.currentTarget.getAttribute('data-index');
+                        document.getElementById(`comment-display-${index}`).classList.remove('hidden');
+                        document.getElementById(`comment-edit-${index}`).classList.add('hidden');
+                    };
+                });
+                
+                document.querySelectorAll('.is-meeting-edit-toggle').forEach(toggle => {
+                    toggle.onchange = (e) => {
+                        const index = e.target.getAttribute('data-index');
+                        const wrapper = document.getElementById(`edit-attendance-wrapper-${index}`);
+                        wrapper.classList.toggle('hidden', !e.target.checked);
+                         wrapper.classList.toggle('flex', e.target.checked);
+                    };
+                });
+
+                document.querySelectorAll('.save-comment-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        const index = e.currentTarget.getAttribute('data-index');
+                        const student = students.find(s => s.ID === currentStudentId);
+                        if (student) {
+                            const editContainer = document.getElementById(`comment-edit-${index}`);
+                            const newText = editContainer.querySelector('textarea').value;
+                            const newDate = editContainer.querySelector('input[type="date"]').value;
+                            const isMeeting = editContainer.querySelector('.is-meeting-edit-toggle').checked;
+                            const attended = editContainer.querySelector('.attended-edit-toggle').checked;
+
+                            student.comments[index].text = newText;
+                            student.comments[index].date = newDate;
+                            student.comments[index].isMeeting = isMeeting;
+
+                            if (isMeeting) {
+                                student.comments[index].attended = attended;
+                            } else {
+                                delete student.comments[index].attended; // Clean up the object
+                            }
+                            student.comments.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                            saveStudentsToLocalStorage();
+                            renderComments(student.comments);
+                            renderCalendar();
+                        }
+                    };
                 });
             }
 
@@ -665,7 +788,7 @@
 
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const studentsOnDate = students.filter(s => s.comments.some(c => c.date === dateStr));
+                    const studentsOnDate = students.filter(s => s.comments.some(c => c.date === dateStr && c.isMeeting));
                     const dayEl = document.createElement('div');
                     dayEl.className = 'text-center p-2 rounded-lg relative cursor-pointer transition-colors';
                     dayEl.innerHTML = `<span class="z-10 relative">${day}</span>`;
@@ -810,30 +933,41 @@
 
             function renderAnalytics() {
                 const contentEl = document.getElementById('analytics-content');
-                let totalComments = 0;
-                let totalAttended = 0;
+                let totalMeetingsLogged = 0;
+                let totalAttendances = 0;
                 
                 const studentStats = students.map(student => {
-                    const commentsCount = student.comments.length;
-                    const attendedCount = student.comments.filter(c => c.attended).length;
-                    totalComments += commentsCount;
-                    totalAttended += attendedCount;
-                    const percentage = commentsCount > 0 ? (attendedCount / commentsCount) * 100 : 0;
-                    return { student, commentsCount, attendedCount, percentage };
+                    const meetings = student.comments.filter(c => c.isMeeting);
+                    const meetingsCount = meetings.length;
+                    const attendedCount = meetings.filter(c => c.attended).length;
+                    
+                    const percentage = meetingsCount > 0 ? (attendedCount / meetingsCount) * 100 : 0;
+                    return { student, meetingsCount, attendedCount, percentage };
                 });
 
-                const overallPercentage = totalComments > 0 ? (totalAttended / totalComments) * 100 : 0;
+                students.forEach(student => {
+                    student.comments.forEach(comment => {
+                        if (comment.isMeeting) {
+                            totalMeetingsLogged++;
+                            if(comment.attended) {
+                                totalAttendances++;
+                            }
+                        }
+                    });
+                });
+
+                const overallPercentage = totalMeetingsLogged > 0 ? (totalAttendances / totalMeetingsLogged) * 100 : 0;
 
                 let html = `
                     <div class="bg-gray-50 p-6 rounded-lg border">
                         <h3 class="text-xl font-bold text-gray-800 mb-4">Overall Summary</h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                             <div>
-                                <p class="text-3xl font-bold text-indigo-600">${totalComments}</p>
-                                <p class="text-gray-500">Total Sessions Logged</p>
+                                <p class="text-3xl font-bold text-indigo-600">${totalMeetingsLogged}</p>
+                                <p class="text-gray-500">Total Meetings Logged</p>
                             </div>
                             <div>
-                                <p class="text-3xl font-bold text-green-600">${totalAttended}</p>
+                                <p class="text-3xl font-bold text-green-600">${totalAttendances}</p>
                                 <p class="text-gray-500">Total Attendances</p>
                             </div>
                             <div>
@@ -848,12 +982,12 @@
                 
                 studentStats.sort((a, b) => a.student.Name.localeCompare(b.student.Name));
 
-                studentStats.forEach(({ student, commentsCount, attendedCount, percentage }) => {
+                studentStats.forEach(({ student, meetingsCount, attendedCount, percentage }) => {
                     html += `
                         <div class="bg-white p-4 rounded-lg border grid grid-cols-3 items-center gap-4">
                             <p class="font-semibold col-span-1">${student.Name}</p>
                             <div class="col-span-1">
-                                <p class="text-center">${attendedCount} / ${commentsCount} <span class="text-gray-500 text-sm">sessions</span></p>
+                                <p class="text-center">${attendedCount} / ${meetingsCount} <span class="text-gray-500 text-sm">meetings</span></p>
                             </div>
                             <div class="col-span-1 text-right">
                                 <p class="font-bold text-lg ${percentage >= 80 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-600'}">
@@ -878,7 +1012,12 @@
                         exportData.push({ ...studentBase, CommentDate: '', Comment: '', Attended: '' });
                     } else {
                         student.comments.forEach(comment => {
-                            exportData.push({ ...studentBase, CommentDate: comment.date, Comment: comment.text, Attended: comment.attended ? 'Yes' : 'No' });
+                            exportData.push({ 
+                                ...studentBase, 
+                                CommentDate: comment.date, 
+                                Comment: comment.text, 
+                                Attended: comment.isMeeting ? (comment.attended ? 'Yes' : 'No') : '' 
+                            });
                         });
                     }
                 });
