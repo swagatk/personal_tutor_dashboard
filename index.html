@@ -788,7 +788,7 @@
 
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const studentsOnDate = students.filter(s => s.comments.some(c => c.date === dateStr && c.isMeeting));
+                    const studentsOnDate = students.filter(s => s.comments.some(c => c.date === dateStr));
                     const dayEl = document.createElement('div');
                     dayEl.className = 'text-center p-2 rounded-lg relative cursor-pointer transition-colors';
                     dayEl.innerHTML = `<span class="z-10 relative">${day}</span>`;
@@ -854,7 +854,7 @@
                 modalStudentList.innerHTML = '';
                 studentsOnDate.forEach(student => {
                     const studentEl = document.createElement('div');
-                    studentEl.className = 'p-3 bg-gray-100 bg-opacity-100 rounded-md cursor-pointer hover:bg-gray-200 flex justify-between items-center';
+                    studentEl.className = 'p-3 bg-white bg-opacity-100 rounded-md cursor-pointer hover:bg-gray-200 flex justify-between items-center';
                     studentEl.innerHTML = `<p class="font-medium">${student.Name}</p><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-circle text-gray-500"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="m12 16 4-4-4-4"/></svg>`;
                     studentEl.addEventListener('click', () => { hideDateModal(); showStudentDetail(student.ID); });
                     modalStudentList.appendChild(studentEl);
@@ -874,7 +874,10 @@
                     scheduleInviteBtn.classList.remove('hidden');
                     scheduleInviteBtn.onclick = () => {
                         icsScheduler.classList.toggle('hidden');
-                        icsDate.value = dateStr;
+                        // Pre-fill with a future date, e.g., tomorrow, instead of the comment date
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        icsDate.value = tomorrow.toISOString().split('T')[0];
                         icsTime.value = "09:00";
                     };
 
@@ -1057,4 +1060,6 @@
     </script>
 </body>
 </html>
+
+
 
