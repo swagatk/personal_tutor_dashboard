@@ -854,7 +854,7 @@
                 modalStudentList.innerHTML = '';
                 studentsOnDate.forEach(student => {
                     const studentEl = document.createElement('div');
-                    studentEl.className = 'p-3 bg-gray-100 rounded-md cursor-pointer hover:bg-gray-200 flex justify-between items-center';
+                    studentEl.className = 'p-3 bg-gray-100 bg-opacity-100 rounded-md cursor-pointer hover:bg-gray-200 flex justify-between items-center';
                     studentEl.innerHTML = `<p class="font-medium">${student.Name}</p><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-circle text-gray-500"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="m12 16 4-4-4-4"/></svg>`;
                     studentEl.addEventListener('click', () => { hideDateModal(); showStudentDetail(student.ID); });
                     modalStudentList.appendChild(studentEl);
