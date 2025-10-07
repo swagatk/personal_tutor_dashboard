@@ -30,3 +30,5 @@
 ![analytics_page](./images/analytics_page.png)
 
 ### Scheduling meetings
+![calendar_event](./images/calendar_event.png)
+![download_calendar_invite](./images/download_calendar_invite.png)

@@ -210,11 +210,22 @@
             <div id="modal-student-list" class="space-y-2">
                 <!-- Students with comments on this date will be listed here -->
             </div>
-            <div class="mt-6 border-t pt-4">
-                <button id="download-ics-btn" class="hidden w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-cloud"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
-                    <span>Download Desktop Invite (.ics)</span>
+            <div class="mt-6 border-t pt-4 space-y-2">
+                <button id="schedule-invite-btn" class="hidden w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-plus"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
+                    <span>Schedule Desktop Invite</span>
                 </button>
+                <div id="ics-scheduler" class="hidden p-4 bg-gray-50 rounded-lg space-y-3">
+                    <p class="text-sm font-semibold text-gray-700">Set meeting date and time:</p>
+                    <div class="flex gap-2">
+                        <input type="date" id="ics-date" class="w-1/2 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <input type="time" id="ics-time" class="w-1/2 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <button id="generate-ics-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        <span>Generate & Download</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -679,8 +690,8 @@
             const dateModal = document.getElementById('date-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
 
-            function generateICSFile(dateStr, studentsOnDate) {
-                const eventDate = new Date(`${dateStr}T09:00:00`);
+            function generateICSFile(eventDateTime, studentsOnDate) {
+                const eventDate = new Date(eventDateTime);
                 const utcDate = new Date(eventDate.getTime() - (eventDate.getTimezoneOffset() * 60000));
                 const toICSDate = (date) => date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
                 const startDate = utcDate;
@@ -726,23 +737,48 @@
                     modalStudentList.appendChild(studentEl);
                 });
 
-                const downloadICSBtn = document.getElementById('download-ics-btn');
+                const scheduleInviteBtn = document.getElementById('schedule-invite-btn');
+                const icsScheduler = document.getElementById('ics-scheduler');
+                const icsDate = document.getElementById('ics-date');
+                const icsTime = document.getElementById('ics-time');
+                const generateIcsBtn = document.getElementById('generate-ics-btn');
+                
                 const studentEmails = studentsOnDate.map(s => s.Email).filter(Boolean);
 
+                icsScheduler.classList.add('hidden');
+
                 if (studentEmails.length > 0) {
-                    downloadICSBtn.classList.remove('hidden');
-                    downloadICSBtn.onclick = () => {
-                        const icsContent = generateICSFile(dateStr, studentsOnDate);
+                    scheduleInviteBtn.classList.remove('hidden');
+                    scheduleInviteBtn.onclick = () => {
+                        icsScheduler.classList.toggle('hidden');
+                        icsDate.value = dateStr;
+                        icsTime.value = "09:00";
+                    };
+
+                    generateIcsBtn.onclick = () => {
+                        const selectedDate = icsDate.value;
+                        const selectedTime = icsTime.value;
+
+                        if (!selectedDate || !selectedTime) {
+                            alert("Please select a valid date and time.");
+                            return;
+                        }
+
+                        const eventDateTime = `${selectedDate}T${selectedTime}:00`;
+                        const icsContent = generateICSFile(eventDateTime, studentsOnDate);
                         const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
                         const link = document.createElement('a');
                         link.href = URL.createObjectURL(blob);
-                        link.download = `TutorMeeting-${dateStr}.ics`;
+                        link.download = `TutorMeeting-${selectedDate}.ics`;
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
+                        
+                        icsScheduler.classList.add('hidden');
+                        hideDateModal();
                     };
                 } else {
-                    downloadICSBtn.classList.add('hidden');
+                    scheduleInviteBtn.classList.add('hidden');
                 }
 
                 dateModal.classList.remove('hidden');
@@ -882,8 +918,4 @@
     </script>
 </body>
 </html>
-
-
-
-"
 
