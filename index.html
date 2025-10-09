@@ -215,37 +215,7 @@
 
     <!-- Modal for showing students on a specific date -->
     <div id="date-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50" style="backdrop-filter: blur(5px);">
-    <div class="modal-content-box rounded-lg shadow-xl max-w-md w-full p-6 bg-white opacity-100 relative z-60">
-        <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-        <h3 class="text-lg font-bold mb-4" id="modal-date"></h3>
-        <p class="text-sm text-gray-600 mb-4">The following students had a meeting on this day. Click to view their page.</p>
-        <div id="modal-student-list" class="space-y-2">
-            <!-- Students with comments on this date will be listed here -->
-        </div>
-        <div class="mt-6 border-t pt-4 space-y-2">
-            <button id="schedule-invite-btn" class="hidden w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-plus"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
-                <span>Schedule Calendar Invite</span>
-            </button>
-            <div id="ics-scheduler" class="hidden p-4 bg-gray-50 rounded-lg space-y-3">
-                <p class="text-sm font-semibold text-gray-700">Set meeting date and time:</p>
-                <div class="flex gap-2">
-                    <input type="date" id="ics-date" class="w-1/2 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
-                    <input type="time" id="ics-time" class="w-1/2 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <button id="generate-ics-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                    <span>Generate & Download</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- 
-    <div id="date-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden">
-        <div class="modal-content-box rounded-lg shadow-xl max-w-md w-full p-6 bg-white opacity-100 relative">
+        <div class="modal-content-box rounded-lg shadow-xl max-w-md w-full p-6 bg-white opacity-100 relative z-60">
             <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-500 hover:text-gray-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
@@ -256,7 +226,7 @@
             </div>
             <div class="mt-6 border-t pt-4 space-y-2">
                 <button id="schedule-invite-btn" class="hidden w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-plus"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-plus"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
                     <span>Schedule Calendar Invite</span>
                 </button>
                 <div id="ics-scheduler" class="hidden p-4 bg-gray-50 rounded-lg space-y-3">
@@ -266,14 +236,13 @@
                         <input type="time" id="ics-time" class="w-1/2 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
                     </div>
                     <button id="generate-ics-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                         <span>Generate & Download</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
- -->
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
