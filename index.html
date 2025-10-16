@@ -158,7 +158,12 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                              </button>
                         </div>
-                        <div id="student-info-details" class="space-y-2 text-gray-600"></div>
+                        <div id="student-info-details" class="space-y-3 text-gray-600"></div>
+                        <div class="mt-4 space-y-2">
+                             <button id="add-student-field-btn" class="w-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold py-2 px-3 rounded-lg flex items-center justify-center space-x-2">
+                                <span>Add New Field</span>
+                            </button>
+                        </div>
                     </div>
                     <!-- Comments -->
                     <div class="md:col-span-2">
@@ -535,18 +540,31 @@
 
                 document.getElementById('student-name-detail').textContent = student.Name;
                 const infoContainer = document.getElementById('student-info-details');
-                infoContainer.innerHTML = '';
+                infoContainer.innerHTML = `
+                    <button id="save-student-details-btn" class="hidden w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-save"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        <span>Save Details</span>
+                    </button>
+                `;
                 for (const [key, value] of Object.entries(student)) {
                     if (key !== 'comments' && key !== 'Name' && key !== 'ID' && !key.startsWith('__EMPTY')) {
-                        const infoEl = document.createElement('p');
-                        if (key === 'Email') {
-                             infoEl.innerHTML = `<strong class="font-medium">${key}:</strong> <a href="mailto:${value}" class="text-indigo-600 hover:underline">${value || 'N/A'}</a>`;
-                        } else {
-                            infoEl.innerHTML = `<strong class="font-medium">${key}:</strong> ${value || 'N/A'}`;
-                        }
+                        const infoEl = document.createElement('div');
+                        infoEl.innerHTML = `
+                            <label class="font-medium text-sm text-gray-500">${key}</label>
+                            <input type="text" data-key="${key}" value="${value || ''}" class="mt-1 w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none">
+                        `;
                         infoContainer.appendChild(infoEl);
                     }
                 }
+
+                infoContainer.addEventListener('input', () => {
+                    document.getElementById('save-student-details-btn').classList.remove('hidden');
+                });
+
+                document.getElementById('add-student-field-btn').onclick = () => addStudentField();
+                document.getElementById('save-student-details-btn').onclick = () => saveStudentDetails();
+
+
                 
                 if (hasEmailField && student.Email) {
                     emailStudentBtn.classList.remove('hidden');
@@ -588,6 +606,50 @@
                 document.getElementById('comment-attended').checked = true;
                 switchView('detail');
             }
+
+            function addStudentField() {
+                const infoContainer = document.getElementById('student-info-details');
+                const newFieldEl = document.createElement('div');
+                newFieldEl.className = 'p-3 bg-indigo-50 border-l-4 border-indigo-400 rounded-r-lg';
+                newFieldEl.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="font-medium text-sm text-gray-500">New Field Name</label>
+                            <input type="text" placeholder="e.g., Placement" class="new-field-key mt-1 w-full p-2 border border-gray-300 rounded-md">
+                        </div>
+                        <div>
+                            <label class="font-medium text-sm text-gray-500">Value</label>
+                            <input type="text" placeholder="Value" class="new-field-value mt-1 w-full p-2 border border-gray-300 rounded-md">
+                        </div>
+                    </div>
+                `;
+                infoContainer.appendChild(newFieldEl);
+                document.getElementById('save-student-details-btn').classList.remove('hidden');
+            }
+
+            function saveStudentDetails() {
+                const student = students.find(s => s.ID === currentStudentId);
+                if (!student) return;
+
+                const infoContainer = document.getElementById('student-info-details');
+                // Update existing fields
+                infoContainer.querySelectorAll('input[data-key]').forEach(input => {
+                    student[input.dataset.key] = input.value;
+                });
+
+                // Add new fields
+                infoContainer.querySelectorAll('.new-field-key').forEach(keyInput => {
+                    const key = keyInput.value.trim();
+                    const value = keyInput.closest('.grid').querySelector('.new-field-value').value.trim();
+                    if (key) {
+                        student[key] = value;
+                    }
+                });
+
+                saveStudentsToLocalStorage();
+                showStudentDetail(currentStudentId); // Re-render to normalize the view
+            }
+
 
             // --- COMMENTS LOGIC ---
             const addCommentBtn = document.getElementById('add-comment-btn');
@@ -1067,4 +1129,3 @@
     </script>
 </body>
 </html>
-
